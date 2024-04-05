@@ -21,7 +21,7 @@ const homePlanRoutes = require('./routes/home')
 const chatBot = require('./routes/chatBot')
 
 mongoose
-  .connect(`mongodb+srv://rajdama:rajdama1234@cluster0.4ldv9.mongodb.net/`, {
+  .connect(`mongodb+srv://aryan672002:aryan672002@cluster0.p2xwit1.mongodb.net/shotman?retryWrites=true&w=majority`, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })
