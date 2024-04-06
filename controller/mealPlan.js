@@ -1,110 +1,48 @@
-const { Client, ID, Databases } = require('node-appwrite')
+const MealPlan = require('../models/mealPlan_model')
 
-const client = new Client()
-  .setEndpoint(`${process.env.APPWRITE_ENDPOINT}`) // Your API Endpoint
-  .setProject(`${process.env.APPWRITE_PROJECT_ID}`) // Your project ID
-  .setKey(`${process.env.APPWRITE_API_KEY}`)
-
-const databases = new Databases(client)
-
-const fetchDocumentByIdAndDate = async (userId, date) => {
-  const allDocuments = await databases.listDocuments(
-    '648889c9d70e67f298c6',
-    '648889d9a5d7e0ba9e8a'
-  )
-
-  const userDocument = allDocuments.documents.filter(
-    (document) => document.userId == userId && document.date == date
-  )
-
-  return userDocument
-}
-
-exports.mealPLanExists = async (req, res) => {
-  const userDocument = await fetchDocumentByIdAndDate(
-    req.body.userId,
-    req.body.date
-  )
-
-  if (userDocument?.length != 0) {
-    res.status(200).send(true)
-  } else {
-    res.status(200).send(false)
+exports.addMealPlan = async (req, res) => {
+  const mealPlanObject = {
+    userId: `${req.body.userId}`,
+    period: req.body.period,
+    food: req.body.food,
   }
-}
-
-exports.updateMealPlan = async (req, res) => {
-  const userDocument = await fetchDocumentByIdAndDate(
-    req.body.userId,
-    req.body.date
-  )
-  let userMealPlan = JSON.parse(userDocument[0].mealPlan)
-  userMealPlan[req.body.period].push(req.body.food)
-  userMealPlan = JSON.stringify(userMealPlan)
-  const document = await databases.updateDocument(
-    '648889c9d70e67f298c6',
-    '648889d9a5d7e0ba9e8a',
-    `${userDocument[0].$id}`,
-    { mealPlan: userMealPlan }
-  )
-  res.status(200).send(document)
-}
-
-exports.createMealPlan = async (req, res) => {
-  const period = req.body.period
-  const mealPlan = [[], [], [], []]
-  mealPlan[period].push(req.body.food)
-
-  const stringifiedMealPlan = JSON.stringify(mealPlan)
-
-  const document = await databases.createDocument(
-    '648889c9d70e67f298c6',
-    '648889d9a5d7e0ba9e8a',
-    ID.unique(),
-    {
-      userId: `${req.body.userId}`,
-      mealPlan: stringifiedMealPlan,
-      date: `${req.body.date}`,
-    }
-  )
+  const mealPlan = new MealPlan(mealPlanObject)
+  mealPlan
+    .save()
+    .then((document) => {
+      res.status(200).send(document)
+    })
+    .catch((error) => {
+      console.error('Error saving data:', error)
+    })
 }
 
 exports.getMealPlan = async (req, res) => {
-  let userDocument = await fetchDocumentByIdAndDate(
-    req.body.userId,
-    req.body.date
-  )
+  const startDate = new Date(req.body.date)
+  startDate.setUTCHours(0, 0, 0, 0)
+  const endDate = new Date(req.body.date)
+  endDate.setUTCHours(23, 59, 59, 999)
 
-  if (userDocument.length != 0) {
-    const mealPlan = JSON.parse(userDocument[0].mealPlan)
-    res.status(200).send(mealPlan)
-  } else {
-    res.status(200).send([])
-  }
+  MealPlan.find({
+    userId: req.body.userId,
+    createdAt: { $gte: startDate, $lte: endDate },
+  })
+    .exec()
+    .then((document) => {
+      let plans = [[], [], [], []]
+      document.map((plan) => {
+        plans[plan.period].push(plan)
+      })
+      console.log(plans)
+      res.status(200).send(plans)
+    })
+    .catch((error) => {
+      console.error('Error saving data:', error)
+    })
 }
 
 exports.deleteMeal = async (req, res) => {
-  let userDocument = await fetchDocumentByIdAndDate(
-    req.body.userId,
-    req.body.date
-  )
-
-  let mealPlan = JSON.parse(userDocument[0].mealPlan)
-
-  let updatedMealPlan = mealPlan.map((meals, periodIndex) => {
-    if (req.body.periodIndex == periodIndex) {
-      meals = meals.filter((meal, j) => j != req.body.mealIndex)
-    }
-    return meals
-  })
-
-  stringifiedUpdatedMealPlan = JSON.stringify(updatedMealPlan)
-  const document = await databases.updateDocument(
-    '648889c9d70e67f298c6',
-    '648889d9a5d7e0ba9e8a',
-    `${userDocument[0].$id}`,
-    { mealPlan: stringifiedUpdatedMealPlan }
-  )
+  // MealPlan.deleteOne({})
 
   res.status(200).send(updatedMealPlan)
 }
