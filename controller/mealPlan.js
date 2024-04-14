@@ -42,7 +42,14 @@ exports.getMealPlan = async (req, res) => {
 }
 
 exports.deleteMeal = async (req, res) => {
-  // MealPlan.deleteOne({})
+  const startDate = new Date(req.body.date)
+  startDate.setUTCHours(0, 0, 0, 0)
+  const endDate = new Date(req.body.date)
+  endDate.setUTCHours(23, 59, 59, 999)
 
-  res.status(200).send(updatedMealPlan)
+  await MealPlan.deleteOne({
+    userId: req.body.userId,
+    period: req.body.period,
+    createdAt: { $gte: startDate, $lte: endDate },
+  })
 }
